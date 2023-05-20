@@ -196,6 +196,12 @@ export default function TicTacToe() {
           </Square>
         );
       })}
+
+      <Strikethrough
+        styles={
+          gameState === GAME_STATES.over ? board.getStrikethroughStyles() : ""
+        }
+      />
  
       <ResultModal
         isOpen={modalOpen}
@@ -243,4 +249,12 @@ const Square = styled.div`
  
 const Marker = styled.p`
   font-size: 68px;
+`;
+
+const Strikethrough = styled.div<{ styles: string | null }>`
+  position: absolute;
+  ${({ styles }) => styles}
+  background-color: indianred;
+  height: 5px;
+  width: ${({ styles }) => !styles && "0px"};
 `;

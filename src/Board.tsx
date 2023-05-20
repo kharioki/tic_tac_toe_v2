@@ -3,9 +3,11 @@ import { DIMENSIONS, DRAW } from "./constants";
 type Grid = Array<null | number>;
 export default class Board {
   grid: Grid;
+  winningIndex: null | number;
   constructor(grid?: Grid) {
     this.grid = grid || new Array(DIMENSIONS ** 2).fill(null);
 
+    this.winningIndex = null; // track the index of the winning combination
   }
  
   // Collect indices of the empty squares and return them
@@ -46,8 +48,10 @@ export default class Board {
         grid[el[0]] === grid[el[2]]
       ) {
         res = grid[el[0]];
+        this.winningIndex = i;
       } else if (res === null && this.getEmptySquares(grid).length === 0) {
         res = DRAW;
+        this.winningIndex = null;
       }
     });
     return res;
@@ -55,6 +59,74 @@ export default class Board {
  
   clone = () => {
     return new Board(this.grid.concat());
+  };
+
+  /**
+   * Get the styles for strike-through based on the combination that won
+   */
+  getStrikethroughStyles = () => {
+    const defaultWidth = 285;
+    const diagonalWidth = 400;
+    switch (this.winningIndex) {
+      case 0:
+        return `
+          transform: none;
+          top: 41px;
+          left: 15px;
+          width: ${defaultWidth}px;
+        `;
+      case 1:
+        return `
+          transform: none;
+          top: 140px;
+          left: 15px;
+          width: ${defaultWidth}px;
+        `;
+      case 2:
+        return `
+          transform: none;
+          top: 242px;
+          left: 15px;
+          width: ${defaultWidth}px;
+        `;
+      case 3:
+        return `
+          transform: rotate(90deg);
+          top: 145px;
+          left: -86px;
+          width: ${defaultWidth}px;
+        `;
+      case 4:
+        return `
+          transform: rotate(90deg);
+          top: 145px;
+          left: 15px;
+          width: ${defaultWidth}px;
+        `;
+      case 5:
+        return `
+          transform: rotate(90deg);
+          top: 145px;
+          left: 115px;
+          width: ${defaultWidth}px;
+        `;
+      case 6:
+        return `
+          transform: rotate(45deg);
+          top: 145px;
+          left: -44px;
+          width: ${diagonalWidth}px;
+        `;
+      case 7:
+        return `
+          transform: rotate(-45deg);
+          top: 145px;
+          left: -46px;
+          width: ${diagonalWidth}px;
+        `;
+      default:
+        return null;
+    }
   };
 }
 
