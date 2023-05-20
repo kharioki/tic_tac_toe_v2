@@ -5,6 +5,7 @@ export default class Board {
   grid: Grid;
   constructor(grid?: Grid) {
     this.grid = grid || new Array(DIMENSIONS ** 2).fill(null);
+
   }
  
   // Collect indices of the empty squares and return them

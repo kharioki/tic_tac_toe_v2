@@ -4,6 +4,8 @@ import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS, GAME_STATES, DRAW, GAME_MO
 import { getRandomInt, switchPlayer } from './utils';
 import Board from './Board';
 import { minimax } from './minimax';
+import { ResultModal } from './ResultModal';
+import { border } from "./styles";
 
 const board = new Board();
 
@@ -28,6 +30,7 @@ export default function TicTacToe() {
 
   const [winner, setWinner] = useState<null | string>(null);
   const [mode, setMode] = useState(GAME_MODES.medium);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // memoize the move function so it doesn't get re-created on every render unless the dependencies change
   const move = useCallback(
@@ -62,8 +65,9 @@ export default function TicTacToe() {
 
   useEffect(() => {
     const boardWinner = board.getWinner(grid);
+
     const declareWinner = (winner: number) => {
-      let winnerString = '';
+      let winnerString;
       switch (winner) {
         case PLAYER_X:
           winnerString = 'Player X wins!';
@@ -77,6 +81,8 @@ export default function TicTacToe() {
       }
       setGameState(GAME_STATES.over);
       setWinner(winnerString);
+      // Slight delay for the modal so there is some time to see the last move
+      setTimeout(() => setModalOpen(true), 300);
     };
 
     if (boardWinner !== null && gameState !== GAME_STATES.over) {
@@ -87,6 +93,7 @@ export default function TicTacToe() {
   const startNewGame = () => {
     setGameState(GAME_STATES.notStarted);
     setGrid(emptyGrid);
+    setModalOpen(false); // close the modal when new game starts
   };
 
   // we wrap the aiMove function in a useCallback hook so it doesn't get re-created on every render unless the dependencies change
@@ -151,57 +158,53 @@ export default function TicTacToe() {
     return () => timeout && clearTimeout(timeout);
   }, [nextMove, aiMove, players.ai, gameState]);
 
-  switch (gameState) {
-    case GAME_STATES.notStarted:
-      default:
-        return (
-          <div>
-            <Inner>
-              <p>Choose game difficulty</p>
-              <select onChange={changeMode} value={mode}>
-                {Object.keys(GAME_MODES).map((key) => {
-                  const gameMode = GAME_MODES[key];
-                  return (
-                    <option key={gameMode} value={gameMode}>
-                      {key}
-                    </option>
-                  );
-                })};
-              </select>
-            </Inner>
-            <Inner>
-              <p>Choose your player</p>
-              <ButtonRow>
-                <button onClick={() => choosePlayer(PLAYER_X)}>X</button>
-                <p>or</p>
-                <button onClick={() => choosePlayer(PLAYER_O)}>O</button>
-              </ButtonRow>
-            </Inner>
-          </div>
-        );
-    case GAME_STATES.inProgress:
-      return (
-        <Container dims={DIMENSIONS}>
-          {grid.map((value, index) => {
-            const isActive = value !== null;
-            
+  return gameState === GAME_STATES.notStarted ? (
+    <div>
+      <Inner>
+        <p>Select difficulty</p>
+        <select onChange={changeMode} value={mode}>
+          {Object.keys(GAME_MODES).map(key => {
+            const gameMode = GAME_MODES[key];
             return (
-              <Square key={index} onClick={() => humanMove(index)}>
-                {isActive && <Marker>{value === PLAYER_X ? 'X' : 'O'}</Marker>}
-              </Square>
+              <option key={gameMode} value={gameMode}>
+                {key}
+              </option>
             );
           })}
-        </Container>
-      );
-    case GAME_STATES.over:
-      return (
-        <div>
-          <p>{winner}</p>
-          <button onClick={startNewGame}>Start over</button>
-        </div>
-      );
-    
-  }
+        </select>
+      </Inner>
+      <Inner>
+        <p>Choose your player</p>
+        <ButtonRow>
+          <button onClick={() => choosePlayer(PLAYER_X)}>X</button>
+          <p>or</p>
+          <button onClick={() => choosePlayer(PLAYER_O)}>O</button>
+        </ButtonRow>
+      </Inner>
+    </div>
+  ) : (
+    <Container dims={DIMENSIONS}>
+      {grid.map((value, index) => {
+        const isActive = value !== null;
+ 
+        return (
+          <Square
+            key={index}
+            onClick={() => humanMove(index)}
+          >
+            {isActive && <Marker>{value === PLAYER_X ? "X" : "O"}</Marker>}
+          </Square>
+        );
+      })}
+ 
+      <ResultModal
+        isOpen={modalOpen}
+        winner={winner}
+        close={() => setModalOpen(false)}
+        startNewGame={startNewGame}
+      />
+    </Container>
+  );
 }
 
 const ButtonRow = styled.div`
@@ -231,7 +234,7 @@ const Square = styled.div`
   align-items: center;
   width: ${SQUARE_DIMS}px;
   height: ${SQUARE_DIMS}px;
-  border: 1px solid black;
+  ${border}; // import border from styles.ts
  
   &:hover {
     cursor: pointer;
