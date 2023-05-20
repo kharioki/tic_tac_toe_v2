@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS, GAME_STATES, DRAW } from './constants';
 import { getRandomInt, switchPlayer } from './utils';
 import Board from './Board';
+import { minimax } from './minimax';
 
 const board = new Board();
 
@@ -43,12 +44,19 @@ export default function TicTacToe() {
 
   // we wrap the aiMove function in a useCallback hook so it doesn't get re-created on every render unless the dependencies change
   const aiMove = useCallback(() => {
-    let index = getRandomInt(0, grid.length - 1); // 0 - 8
-    while (grid[index]) {
-      index = getRandomInt(0, grid.length - 1);
+    // let index = getRandomInt(0, grid.length - 1); // 0 - 8
+    // while (grid[index]) {
+    //   index = getRandomInt(0, grid.length - 1);
+    // }
+    const board = new Board(grid.concat()); // create a copy of the grid
+    const index = board.isEmpty(grid) // if the board is empty, choose a random square
+      ? getRandomInt(0, grid.length - 1)
+      : minimax(board, players.ai!)[1]; // [score, index]
+
+    if (index !== null) {
+      move(index, players.ai);
+      setNextMove(players.human);
     }
-    move(index, players.ai);
-    setNextMove(players.human);
   }, [move, grid, players]);
 
   const humanMove = (index: number) => {

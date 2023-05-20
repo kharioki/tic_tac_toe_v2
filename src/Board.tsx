@@ -19,6 +19,12 @@ export default class Board {
   isEmpty = (grid = this.grid) => {
     return this.getEmptySquares(grid).length === DIMENSIONS ** 2;
   };
+
+  makeMove = (square: number, player: number) => {
+    if (this.grid[square] === null) {
+      this.grid[square] = player;
+    }
+  };
  
   getWinner = (grid = this.grid) => {
     const winningCombos = [
