@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS, GAME_STATES, DRAW } from './constants';
+import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS, GAME_STATES, DRAW, GAME_MODES } from './constants';
 import { getRandomInt, switchPlayer } from './utils';
 import Board from './Board';
 import { minimax } from './minimax';
@@ -27,6 +27,7 @@ export default function TicTacToe() {
   const [nextMove, setNextMove] = useState<null | number>(null);
 
   const [winner, setWinner] = useState<null | string>(null);
+  const [mode, setMode] = useState(GAME_MODES.medium);
 
   // memoize the move function so it doesn't get re-created on every render unless the dependencies change
   const move = useCallback(
@@ -40,25 +41,9 @@ export default function TicTacToe() {
       }
     }, 
   [gameState]
-);
+  );
 
-  // we wrap the aiMove function in a useCallback hook so it doesn't get re-created on every render unless the dependencies change
-  const aiMove = useCallback(() => {
-    // let index = getRandomInt(0, grid.length - 1); // 0 - 8
-    // while (grid[index]) {
-    //   index = getRandomInt(0, grid.length - 1);
-    // }
-    const board = new Board(grid.concat()); // create a copy of the grid
-    const index = board.isEmpty(grid) // if the board is empty, choose a random square
-      ? getRandomInt(0, grid.length - 1)
-      : minimax(board, players.ai!)[1]; // [score, index]
-
-    if (index !== null) {
-      move(index, players.ai);
-      setNextMove(players.human);
-    }
-  }, [move, grid, players]);
-
+  
   const humanMove = (index: number) => {
     if (!grid[index] && nextMove === players.human) {
       move(index, players.human);
@@ -66,20 +51,7 @@ export default function TicTacToe() {
     }
   };
 
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (
-      nextMove !== null &&
-      nextMove === players.ai &&
-      gameState !== GAME_STATES.over
-    ) {
-      // Delay AI moves to make them seem natural
-      timeout = setTimeout(() => {
-        aiMove();
-      }, 500);
-    }
-    return () => timeout && clearTimeout(timeout);
-  }, [nextMove, aiMove, players.ai, gameState]);
+  
 
   const choosePlayer = (option: number) => {
     setPlayers({ human: option, ai: switchPlayer(option) });
@@ -117,11 +89,86 @@ export default function TicTacToe() {
     setGrid(emptyGrid);
   };
 
+  // we wrap the aiMove function in a useCallback hook so it doesn't get re-created on every render unless the dependencies change
+   /**
+   * Make the AI move. If it's the first move (the board is empty),
+   * make the move at any random cell to skip unnecessary Minimax calculations
+   */
+   const aiMove = useCallback(() => {
+    // Important to pass a copy of the grid here
+    const board = new Board(grid.concat()); // create a copy of the grid
+    const emptyIndices = board.getEmptySquares(grid); // get the empty squares
+    let index;
+
+    switch (mode) {
+      case GAME_MODES.easy:
+        do {
+          index = getRandomInt(0, 8);
+        } while (!emptyIndices.includes(index));
+        break;
+      // Medium level is approx. half of the moves are minimax and the other half are random
+      case GAME_MODES.medium:
+        const smartMove = !board.isEmpty() && Math.random() < 0.5;
+        if (smartMove) {
+          index = minimax(board, players.ai!)[1];
+        } else {
+          do {
+            index = getRandomInt(0, 8);
+          } while (!emptyIndices.includes(index));
+        }
+        break;
+      case GAME_MODES.hard:
+        default:
+          index = board.isEmpty()
+            ? getRandomInt(0, 8)
+            : minimax(board, players.ai!)[1];
+    }
+
+    if (index && !grid[index]) {
+      if (players.ai !== null) {
+        move(index, players.ai);
+      }
+      setNextMove(players.human);
+    }
+  }, [move, grid, players, mode]);
+
+  const changeMode = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMode(e.target.value);
+  };
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (
+      nextMove !== null &&
+      nextMove === players.ai &&
+      gameState !== GAME_STATES.over
+    ) {
+      // Delay AI moves to make them seem natural
+      timeout = setTimeout(() => {
+        aiMove();
+      }, 500);
+    }
+    return () => timeout && clearTimeout(timeout);
+  }, [nextMove, aiMove, players.ai, gameState]);
+
   switch (gameState) {
     case GAME_STATES.notStarted:
       default:
         return (
           <div>
+            <Inner>
+              <p>Choose game difficulty</p>
+              <select onChange={changeMode} value={mode}>
+                {Object.keys(GAME_MODES).map((key) => {
+                  const gameMode = GAME_MODES[key];
+                  return (
+                    <option key={gameMode} value={gameMode}>
+                      {key}
+                    </option>
+                  );
+                })};
+              </select>
+            </Inner>
             <Inner>
               <p>Choose your player</p>
               <ButtonRow>
