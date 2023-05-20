@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS, GAME_STATES } from './constants';
+import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS, GAME_STATES, DRAW } from './constants';
 import { getRandomInt, switchPlayer } from './utils';
+import Board from './Board';
+
+const board = new Board();
 
 /** first create an array of length 9, then fill it with null values
  *  we declare it outside the component so its not re-created on every render
@@ -21,6 +24,8 @@ export default function TicTacToe() {
   });
   const [gameState, setGameState] = useState(GAME_STATES.notStarted);
   const [nextMove, setNextMove] = useState<null | number>(null);
+
+  const [winner, setWinner] = useState<null | string>(null);
 
   // memoize the move function so it doesn't get re-created on every render unless the dependencies change
   const move = useCallback(
@@ -75,30 +80,73 @@ export default function TicTacToe() {
     setNextMove(PLAYER_X);
   };
 
-  return gameState === GAME_STATES.notStarted ? (
-    <div>
-      <Inner>
-        <p>Choose your player</p>
-        <ButtonRow>
-          <button onClick={() => choosePlayer(PLAYER_X)}>X</button>
-          <p>or</p>
-          <button onClick={() => choosePlayer(PLAYER_O)}>O</button>
-        </ButtonRow>
-      </Inner>
-    </div>
-  ) : (
-    <Container dims={DIMENSIONS}>
-      {grid.map((value, index) => {
-        const isActive = value !== null;
+  useEffect(() => {
+    const boardWinner = board.getWinner(grid);
+    const declareWinner = (winner: number) => {
+      let winnerString = '';
+      switch (winner) {
+        case PLAYER_X:
+          winnerString = 'Player X wins!';
+          break;
+        case PLAYER_O:
+          winnerString = 'Player O wins!';
+          break;
+        case DRAW:
+          default:
+            winnerString = 'Its a draw!';
+      }
+      setGameState(GAME_STATES.over);
+      setWinner(winnerString);
+    };
 
+    if (boardWinner !== null && gameState !== GAME_STATES.over) {
+      declareWinner(boardWinner);
+    }
+  }, [grid, gameState, nextMove]);
+
+  const startNewGame = () => {
+    setGameState(GAME_STATES.notStarted);
+    setGrid(emptyGrid);
+  };
+
+  switch (gameState) {
+    case GAME_STATES.notStarted:
+      default:
         return (
-          <Square key={index} onClick={() => humanMove(index)}>
-            {isActive && <Marker>{value === PLAYER_X ? 'X' : 'O'}</Marker>}
-          </Square>
+          <div>
+            <Inner>
+              <p>Choose your player</p>
+              <ButtonRow>
+                <button onClick={() => choosePlayer(PLAYER_X)}>X</button>
+                <p>or</p>
+                <button onClick={() => choosePlayer(PLAYER_O)}>O</button>
+              </ButtonRow>
+            </Inner>
+          </div>
         );
-      })}
-    </Container>
-  );
+    case GAME_STATES.inProgress:
+      return (
+        <Container dims={DIMENSIONS}>
+          {grid.map((value, index) => {
+            const isActive = value !== null;
+            
+            return (
+              <Square key={index} onClick={() => humanMove(index)}>
+                {isActive && <Marker>{value === PLAYER_X ? 'X' : 'O'}</Marker>}
+              </Square>
+            );
+          })}
+        </Container>
+      );
+    case GAME_STATES.over:
+      return (
+        <div>
+          <p>{winner}</p>
+          <button onClick={startNewGame}>Start over</button>
+        </div>
+      );
+    
+  }
 }
 
 const ButtonRow = styled.div`
