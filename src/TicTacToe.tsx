@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS } from './constants';
-import { getRandomInt } from './utils';
+import { DIMENSIONS, PLAYER_X, PLAYER_O, SQUARE_DIMS, GAME_STATES } from './constants';
+import { getRandomInt, switchPlayer } from './utils';
 
 /** first create an array of length 9, then fill it with null values
  *  we declare it outside the component so its not re-created on every render
@@ -15,17 +15,20 @@ const emptyGrid = new Array(DIMENSIONS ** 2).fill(null); // [null, null, null, n
 
 export default function TicTacToe() {
   const [grid, setGrid] = useState(emptyGrid);
-  const [players, setPlayers] = useState({
-    human: PLAYER_X,
-    ai: PLAYER_O,
+  const [players, setPlayers] = useState<Record<string, number | null>>({
+    human: null,
+    ai: null,
   });
+  const [gameState, setGameState] = useState(GAME_STATES.notStarted);
 
-  const move = (index: number, player: number) => {
-    setGrid((grid) => {
-      const gridCopy = grid.concat();
-      gridCopy[index] = player;
-      return gridCopy;
-    });
+  const move = (index: number, player: number | null) => {
+    if (player !== null) {
+      setGrid((grid) => {
+        const gridCopy = grid.concat();
+        gridCopy[index] = player;
+        return gridCopy;
+      });
+    }
   };
 
   const aiMove = () => {
@@ -43,7 +46,23 @@ export default function TicTacToe() {
     }
   };
 
-  return (
+  const choosePlayer = (option: number) => {
+    setPlayers({ human: option, ai: switchPlayer(option) });
+    setGameState(GAME_STATES.inProgress);
+  };
+
+  return gameState === GAME_STATES.notStarted ? (
+    <div>
+      <Inner>
+        <p>Choose your player</p>
+        <ButtonRow>
+          <button onClick={() => choosePlayer(PLAYER_X)}>X</button>
+          <p>or</p>
+          <button onClick={() => choosePlayer(PLAYER_O)}>O</button>
+        </ButtonRow>
+      </Inner>
+    </div>
+  ) : (
     <Container dims={DIMENSIONS}>
       {grid.map((value, index) => {
         const isActive = value !== null;
@@ -57,6 +76,19 @@ export default function TicTacToe() {
     </Container>
   );
 }
+
+const ButtonRow = styled.div`
+  display: flex;
+  width: 150px;
+  justify-content: space-between;
+`;
+ 
+const Inner = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+`;
 
 const Container = styled.div<{ dims: number }>`
   display: flex;
